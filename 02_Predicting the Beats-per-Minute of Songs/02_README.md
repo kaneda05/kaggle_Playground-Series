@@ -1,5 +1,5 @@
 # Predicting the Beats-per-Minute of Songs
-![image](https://github.com/kaneda05/kaggle_Playground-Series/blob/main/png/02_Predicting-the-Beats-per-Minute-of-Songs.png)
+![image](https://github.com/kaneda05/kaggle_Playground-Series/blob/main/png/02_Predicting%20the%20Beats-per-Minute%20of%20Songs.png)
 
 
 
@@ -45,4 +45,5 @@ def bin_column(df, column, bins, bin_names=None):
 時間・スコア系 → ある閾値を超えると印象が大きく変わる
 
 といった性質があるので、ビニングが有効に働きやすい
+
 ---
