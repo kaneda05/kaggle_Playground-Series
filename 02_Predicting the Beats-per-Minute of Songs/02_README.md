@@ -79,3 +79,12 @@ XGBoost / LightGBM / CatBoost をそれぞれクロスバリデーションで�
 [作成コード](https://www.kaggle.com/code/masakane/baseline-xgboost)
 
 ---
+
+## 0912
+[Beats per minute | Ensemble | S5E9](https://www.kaggle.com/code/anthonytherrien/beats-per-minute-ensemble-s5e9)
+
+LB ⇨ 26.38137（30/1393）
+
+アンサンブル学習を実施することで、精度の向上が見られそうということがわかる。
+どうやらモデルによって学習が得意なモデルとそうで無いモデルがあるので、
+例えばラグのみを学習するモデルとそれ以外などで分けてアンサンブルさせるなどを行なっても良いかも？
