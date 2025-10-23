@@ -6,7 +6,7 @@ kaggleのDatasetsを使用した練習用リポジトリ
 |:--:|:--:|:--:|:--:|
 |001|[Binary Classification with a Bank Dataset](https://www.kaggle.com/competitions/playground-series-s5e8)|[README](https://github.com/kaneda05/kaggle_Playground-Series/blob/main/01_Binary_Classification%7CBank_Dataset/01_README.md)|2025/8/31|
 |002|[Predicting the Beats-per-Minute of Songs](https://www.kaggle.com/competitions/playground-series-s5e9)|[README](https://github.com/kaneda05/kaggle_Playground-Series/blob/main/02_Predicting%20the%20Beats-per-Minute%20of%20Songs/02_README.md)|2025/9/2|
-|003|[Predicting Road Accident Risk](https://www.kaggle.com/competitions/playground-series-s5e10/overview)|xxx|2025/10/2|
+|003|[Predicting Road Accident Risk](https://www.kaggle.com/competitions/playground-series-s5e10/overview)|[README](https://github.com/kaneda05/kaggle_Playground-Series/blob/main/03_Predicting%20Road%20Accident%20Risk/03_README.md)]|2025/10/23|
 |xxx|xxx|xxx|xxx|
 |xxx|xxx|xxx|xxx|
 |xxx|xxx|xxx|xxx|
