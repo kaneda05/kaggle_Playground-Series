@@ -1,5 +1,5 @@
 # Predicting the Beats-per-Minute of Songs
-![image](https://github.com/kaneda05/kaggle_Playground-Series/blob/main/png/02_Predicting%20the%20Beats-per-Minute%20of%20Songs.png)
+![image](https://github.com/kaneda05/kaggle_Playground-Series/blob/main/png/002_playground.png)
 
 
 
