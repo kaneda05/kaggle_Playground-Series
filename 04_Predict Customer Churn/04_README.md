@@ -141,3 +141,83 @@ submission.to_csv('submission.csv', index=False)
 1. **アルゴリズムの変更**: Random Forest から Kaggleの王道である `LightGBM` への移行。
 2. **特徴量エンジニアリング**: `TotalCharges / tenure` など、新しい列（変数）の作成。
 3. **ハイパーパラメータチューニング**: モデルの設定値の最適化。
+
+# Kaggle 顧客解約（Churn）予測：特徴量エンジニアリングと高度なアンサンブル
+
+## 📌 アップデート概要
+ベースラインモデル完成後、さらなる予測精度の向上とモデルの安定化を目指し、Kaggle上位陣の定石である「深掘りEDAからの特徴量生成」「K-Fold交差検証」「勾配ブースティング3種のアンサンブル」を実装した記録です。
+
+## 💡 新たに学んだこと（Key Learnings）
+1. **深掘りEDAとビジネス仮説の重要性**: 単純な集計だけでなく、「オプション契約数が多いほど解約しづらい（粘着度）」「計算上の支払額と実際の支払額のズレに不満が隠れている（違和感）」といったビジネスロジックに基づく仮説が、強力な特徴量を生み出す。
+2. **K-Fold交差検証（Cross Validation）**: データを分割して複数回学習・評価（今回は5-Fold）を行うことで、データの「引き運（まぐれ当たり）」による過学習を防ぎ、モデルの真の実力（Out-of-Fold スコア）を正確に測ることができる。
+3. **OOF予測値を使った高度なアンサンブル**: LightGBM、CatBoost、XGBoostという特性の異なる3つのモデルのOOF（評価用）予測値を使用し、総当たりで最適な加重平均（ブレンド比率）を探索することで、単体モデルの限界を突破できる。
+
+---
+
+## 🛠️ ステップバイステップの実行記録
+
+### Step 1: 深掘りEDAと特徴量エンジニアリング (Feature Engineering)
+初期のEDAから一歩踏み込み、顧客の「行動心理」を反映した2つの新しい特徴量を作成しました。
+
+* **学び**: 新しく作成した `Num_Services`（オプション契約数）を積み上げ棒グラフで確認したところ、契約数が0〜1個の層は解約率が高く、4〜6個と増えるにつれて解約率が激減する明確な傾向（サービスの粘着度）を確認できた。
+
+```python
+# 1. サービスの粘着度 (Stickiness): 追加オプションの契約数をカウント
+services = ['OnlineSecurity', 'OnlineBackup', 'DeviceProtection', 
+            'TechSupport', 'StreamingTV', 'StreamingMovies']
+train['Num_Services'] = train[services].apply(lambda x: (x == 'Yes').sum(), axis=1)
+
+# 2. 支払いの違和感 (Discrepancy): 実際の総支払額と計算上の総支払額の差額
+train['Calculated_Total'] = train['MonthlyCharges'] * train['tenure']
+train['Total_Difference'] = train['TotalCharges'] - train['Calculated_Total']
+```
+
+### Step 2: K-Fold交差検証による学習 (K-Fold CV)
+新特徴量を追加したデータに対し、5分割の交差検証を行い、強力な3つの勾配ブースティングモデルを学習させました。
+
+* **学び**: 各Fold間でスコアにばらつき（例: 0.914〜0.917）が出た。K-Foldを行うことで、このブレを吸収した安定した評価が可能になる。特に文字列（カテゴリ）データに強い `CatBoost` が単体で高いパフォーマンスを発揮した。
+
+```python
+from sklearn.model_selection import StratifiedKFold
+from catboost import CatBoostClassifier
+
+# 5-Foldの設定
+skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+oof_preds_cb = np.zeros(len(X))
+
+for fold, (train_idx, valid_idx) in enumerate(skf.split(X, y)):
+    X_train_fold, y_train_fold = X.iloc[train_idx], y.iloc[train_idx]
+    X_valid_fold, y_valid_fold = X.iloc[valid_idx], y.iloc[valid_idx]
+    
+    # CatBoostの学習（LightGBM, XGBoostも同様に実行）
+    model_cb = CatBoostClassifier(random_state=42, verbose=0)
+    model_cb.fit(X_train_fold, y_train_fold)
+    
+    # OOF（Out-of-Fold）予測値の保存
+    oof_preds_cb[valid_idx] = model_cb.predict_proba(X_valid_fold)[:, 1]
+```
+
+### Step 3: OOFアンサンブルと最終予測 (Ensemble Blending)
+3つのモデルのOOF予測値を使って0.00〜1.00の範囲で最適な重みを探索し、最終的な予測値を算出しました。
+
+* **学び**: 最適な重みは `LightGBM: 0.15`, `CatBoost: 0.50`, `XGBoost: 0.35` となった。一番精度の高いモデル（CatBoost）を主軸にしつつ、他のモデルで予測のブレを補正する理想的なアンサンブルが完成し、スコアの限界突破に成功した。
+
+```python
+best_auc = 0
+best_weights = []
+
+# 総当たりで最適なブレンド比率を探索
+for w_lgb in np.arange(0, 1.05, 0.05):
+    for w_cb in np.arange(0, 1.05, 0.05):
+        w_xgb = 1.0 - w_lgb - w_cb
+        if w_xgb < -0.0001 or w_xgb > 1.0001: continue
+            
+        ensemble_oof = (w_lgb * oof_preds_lgb) + (w_cb * oof_preds_cb) + (w_xgb * oof_preds_xgb)
+        auc = roc_auc_score(y, ensemble_oof)
+        
+        if auc > best_auc:
+            best_auc = auc
+            best_weights = [w_lgb, w_cb, w_xgb]
+
+print(f"🚀 Final Ensemble OOF AUC: {best_auc:.5f}")
+```
